@@ -7,7 +7,7 @@ module_logger = logging.getLogger(__name__)
 class BFState:
 
     def __init__(self):
-        self._state = [0]*int(10)
+        self._state = [0]*int(100)
         self._idx = 0
 
     def __getitem__(self, idx):
@@ -16,6 +16,10 @@ class BFState:
     @property
     def idx(self):
         return self._idx
+
+    @property
+    def state(self) -> str:
+        return ",".join([str(c) for c in self._state])
 
     def right(self):
         self._idx += 1
@@ -54,34 +58,38 @@ def pre_process(bf_str: str):
 
 
 def interpret(state, cmds):
-    module_logger.debug(f"interpret: len(cmds)={len(cmds)}, cmds={''.join(cmds)}, idx={state.idx}")
-    def get_enclosed_cmds(cmds):
 
-        idx = cmds[::-1].index("]")
-        if idx != 0:
-            cmds = cmds[:-idx-1]
-        else:
-            cmds = cmds[:-1]
+    module_logger.debug((f"interpret: len(cmds)={len(cmds)}, "
+                         f"cmds={''.join(cmds)}, idx={state.idx}"))
 
-        count = 0
+    def _get_enclosed_cmds(cmds):
 
-        end = len(cmds) - 1
-        for i, c in enumerate(cmds):
-            if c == "[":
-                count += 1
-            elif c == "]":
-                count -= 1
+        def _get_matching_bracket(count, end, cmds):
+            if len(cmds) == 0:
+                return count, end
             if count == 0:
-                end = i
-                break
+                return count, end
+
+            cmd = cmds[0]
+            new_count = count
+            if cmd == "[":
+                new_count += 1
+            elif cmd == "]":
+                new_count -= 1
+
+            return _get_matching_bracket(
+                new_count, end+1, cmds[1:])
+
+        count, end = _get_matching_bracket(1, 0, cmds[1:])
+
         return cmds[1:end+1]
+
     if len(cmds) == 0:
         return
     cmd = cmds[0]
     idx = 1
     module_logger.debug(
-        (f"cmd={cmd}, idx={state.idx}, "
-         f"state={','.join([str(c) for c in state._state])}"))
+        (f"cmd={cmd}, idx={state.idx}, state={state.state}"))
     if cmd == ">":
         state.right()
     elif cmd == "<":
@@ -91,14 +99,13 @@ def interpret(state, cmds):
     elif cmd == "-":
         state.decr()
     elif cmd == ".":
-        # module_logger.debug(f"state={','.join([str(c) for c in state._state])}")
         print(state, end="")
     elif cmd == "[":
-        chunk = get_enclosed_cmds(cmds)
+        chunk = _get_enclosed_cmds(cmds)
         module_logger.debug(f"chunk={''.join(chunk)}")
         while int(state) > 0:
             interpret(state, chunk)
-            module_logger.debug(f"state={','.join([str(c) for c in state._state])}")
+            module_logger.debug(f"state={state.state}")
         module_logger.debug(f"after chunk, idx={state.idx}")
         idx = len(chunk) + 1
     elif cmd == "]":
@@ -117,7 +124,6 @@ def main():
 
     state = BFState()
     bf_program_str = pre_process(contents)
-    # module_logger.debug("".join(bf_program_str))
     interpret(state, bf_program_str)
 
 
