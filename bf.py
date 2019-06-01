@@ -54,7 +54,7 @@ def pre_process(bf_str: str):
 
 
 def interpret(state, cmds):
-    module_logger.debug(f"interpret: cmds={''.join(cmds)}, idx={state.idx}")
+    module_logger.debug(f"interpret: len(cmds)={len(cmds)}, cmds={''.join(cmds)}, idx={state.idx}")
     def get_enclosed_cmds(cmds):
 
         idx = cmds[::-1].index("]")
@@ -75,37 +75,35 @@ def interpret(state, cmds):
                 end = i
                 break
         return cmds[1:end+1]
-    i = 0
-    while i < len(cmds):
-        cmd = cmds[i]
-        module_logger.debug(
-            (f"i={i}, cmd={cmd}, idx={state.idx}, "
-             f"state={','.join([str(c) for c in state._state])}"))
-        if cmd == ">":
-            state.right()
-        elif cmd == "<":
-            state.left()
-        elif cmd == "+":
-            state.incr()
-        elif cmd == "-":
-            state.decr()
-        elif cmd == ".":
-            # module_logger.debug(f"state={','.join([str(c) for c in state._state])}")
-            print(state, end="")
-        elif cmd == "[":
-            chunk = get_enclosed_cmds(cmds[i:])
-            module_logger.debug(f"chunk={''.join(chunk)}")
-            # module_logger.debug(f"state={''.join([str(c) for c in state._state])}")
-            # idx = state.idx
-            # while state[idx] > 0:
-            while int(state) > 0:
-                interpret(state, chunk)
-                module_logger.debug(f"state={','.join([str(c) for c in state._state])}")
-            i += len(chunk)
-            module_logger.debug(f"after chunk, idx={state.idx}")
-        elif cmd == "]":
-            pass
-        i += 1
+    if len(cmds) == 0:
+        return
+    cmd = cmds[0]
+    idx = 1
+    module_logger.debug(
+        (f"cmd={cmd}, idx={state.idx}, "
+         f"state={','.join([str(c) for c in state._state])}"))
+    if cmd == ">":
+        state.right()
+    elif cmd == "<":
+        state.left()
+    elif cmd == "+":
+        state.incr()
+    elif cmd == "-":
+        state.decr()
+    elif cmd == ".":
+        # module_logger.debug(f"state={','.join([str(c) for c in state._state])}")
+        print(state, end="")
+    elif cmd == "[":
+        chunk = get_enclosed_cmds(cmds)
+        module_logger.debug(f"chunk={''.join(chunk)}")
+        while int(state) > 0:
+            interpret(state, chunk)
+            module_logger.debug(f"state={','.join([str(c) for c in state._state])}")
+        module_logger.debug(f"after chunk, idx={state.idx}")
+        idx = len(chunk) + 1
+    elif cmd == "]":
+        pass
+    interpret(state, cmds[idx:])
 
 
 def main():
