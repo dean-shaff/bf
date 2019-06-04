@@ -15,7 +15,21 @@ decr (State xs idx) =
   State (take idx xs  ++ [(xs!!idx) - 1] ++ drop (idx+1) xs) idx
 
 getEnclosedCmds :: String -> String
-getEnclosedCmds cmds = cmds
+getEnclosedCmds cmds =
+  let getMatchingBracket cmds count end
+        | length(cmds) == 0 = retTuple
+        | count == 0 = retTuple
+        | otherwise =
+          let cmd = head cmds
+              count' = case cmd of
+                          '[' -> count + 1
+                          ']' -> count - 1
+                           _ -> count
+              end' = end+1
+          in getMatchingBracket (tail cmds) count' end'
+        where retTuple = (count, end)
+      end = snd $ getMatchingBracket cmds 1 0
+  in take end (tail cmds)
 
 interpret :: (Num a) => String -> State a -> State a
 interpret cmd:xs state
