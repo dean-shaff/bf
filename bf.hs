@@ -1,44 +1,43 @@
-data LinkedList a = Empty | Node a (LinkedList a) (LinkedList a) deriving (Show)
+data State a = State [a] Int deriving (Show)
 
-getVal :: (Num a) => LinkedList a -> a
-getVal (Node val left right) = val
+right :: (Num a) => State a -> State a
+right (State xs idx) = (State xs (idx + 1))
 
-right :: (Num a) => LinkedList a -> LinkedList a
-right Empty = Empty
-right (Node val left' right') = right'
+left :: (Num a) => State a -> State a
+left (State xs idx) = State xs (idx - 1)
 
-left :: (Num a) => LinkedList a -> LinkedList a
-left Empty = Empty
-left (Node val left' right') = left'
+incr :: (Num a) => State a -> State a
+incr (State xs idx) =
+  State (take idx xs  ++ [(xs!!idx) + 1] ++ drop (idx+1) xs) idx
 
-insert :: (Num a) => a -> LinkedList a -> LinkedList a -> LinkedList a
-insert val left' Empty = Node val left' Empty
-insert val left' right' =
-  let x = getVal right'
-      rightLeft = left right'
-      rightRight = right right'
-  in Node x left' (insert val right' rightRight)
+decr :: (Num a) => State a -> State a
+decr (State xs idx) =
+  State (take idx xs  ++ [(xs!!idx) - 1] ++ drop (idx+1) xs) idx
 
+getEnclosedCmds :: String -> String
+getEnclosedCmds cmds = cmds
 
--- data State a = State [a] Int deriving (Show)
---
--- right :: (Num a) => State a -> State a
--- right (State xs idx) = (State xs (idx + 1))
---
--- left :: (Num a) => State a -> State a
--- left (State xs idx) = State xs (idx - 1)
---
--- incr :: (Num a) => State a -> State a
--- incr (State xs idx) =
---   State (take idx xs  ++ [(xs!!idx) + 1] ++ drop (idx+1) xs) idx
---
--- decr :: (Num a) => State a -> State a
--- decr (State xs idx) =
---   State (take idx xs  ++ [(xs!!idx) - 1] ++ drop (idx+1) xs) idx
+interpret :: (Num a) => String -> State a -> State a
+interpret cmd:xs state
+  | cmd == '>' = interpret xs (right state)
+  | cmd == '<' = interpret xs (left state)
+  | cmd == '+' = interpret xs (incr state)
+  | cmd == '-' = interpret xs (decr state)
+  | cmd == ']' = interpret xs state
+  | cmd == '[' =
+    let chunk = getEnclosedCmds cmd:xs
+        interpretChunk = interpret chunk
+        loop s
+          | (getVal s) == 0 = s
+          | otherwise = loop (interpretChunk s)
+        state' = interpret (take (length chunk) cmds) (loop state)
+    in state'
+interpret [] state = state
 
 
 main = do
   let program = "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++."
-  let list = foldl (\accum x -> insert x (left accum) accum) (Node 0 Empty Empty) [1..3]
-  print (getVal list)
-  print (getVal $ right $ left $ right list)
+  let state = State (map (\x -> 0) [1..100]) 0
+  print
+  -- print (getVal list)
+  -- print (getVal $ right $ left $ right list)
