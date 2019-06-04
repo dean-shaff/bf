@@ -125,6 +125,7 @@ def main():
     state = BFState()
     bf_program_str = pre_process(contents)
     interpret(state, bf_program_str)
+    print(state.state)
 
 
 if __name__ == "__main__":
