@@ -36,31 +36,65 @@ getEnclosedCmds cmds =
       end = snd $ getMatchingBracket cmds 1 0
   in take end cmds
 
-interpret :: (Num a, Eq a) => String -> (State a, [a]) -> (State a, [a])
-interpret [] state = state
+--interpret :: (Num a, Eq a) => String -> (State a, [a]) -> (State a, [a])
+--interpret [] state = state
+--interpret cmds state
+--  | x == '>' = interpret xs (right $ fst state, snd state)
+--  | x == '<' = interpret xs (left $ fst state, snd state)
+--  | x == '+' = interpret xs (incr $ fst state, snd state)
+--  | x == '-' = interpret xs (decr $ fst state, snd state)
+--  | x == '.' = interpret xs (fst state, (val $ fst state):(snd state))
+--  | x == '[' =
+--    let chunk = getEnclosedCmds xs
+--        interpretChunk = interpret chunk
+--        loop res
+--          | (val s) == 0 = res
+--          | otherwise = loop (interpretChunk res)
+--          where s = fst res
+--        dropped = drop (length chunk + 1) cmds
+--        res' = interpret dropped (loop state)
+--    in res'
+--  | otherwise = interpret xs state
+--  where x = head cmds
+--        xs = tail cmds
+
+loop :: (Num a, Eq a) => (State a -> IO (State a)) -> IO (State a) -> IO (State a)
+loop untilFn state =
+  state >>= (\s ->
+    if val s == 0
+    then return s
+    else loop untilFn (untilFn s))
+
+-- interpret :: String -> State Int -> IO (State Int)
+-- interpret [] state = return state
+-- interpret cmds state =
+--   loop (\x -> return (decr x)) (return (incr $ incr state))
+
+interpret :: String -> State Int -> IO (State Int)
+interpret [] state = return state
 interpret cmds state
-  | x == '>' = interpret xs (right $ fst state, snd state)
-  | x == '<' = interpret xs (left $ fst state, snd state)
-  | x == '+' = interpret xs (incr $ fst state, snd state)
-  | x == '-' = interpret xs (decr $ fst state, snd state)
-  | x == '.' = interpret xs (fst state, (val $ fst state):(snd state))
+  | x == '>' = interpret xs (right state)
+  | x == '<' = interpret xs (left state)
+  | x == '+' = interpret xs (incr state)
+  | x == '-' = interpret xs (decr state)
+  | x == '.' = putChar (toEnum (val state)::Char) >> interpret xs state
   | x == '[' =
     let chunk = getEnclosedCmds xs
         interpretChunk = interpret chunk
-        loop res
-          | (val s) == 0 = res
-          | otherwise = loop (interpretChunk res)
-          where s = fst res
         dropped = drop (length chunk + 1) cmds
-        res' = interpret dropped (loop state)
+        newState = (loop interpretChunk (return state))
+        res' = newState >>= (interpret dropped)
     in res'
   | otherwise = interpret xs state
   where x = head cmds
         xs = tail cmds
 
+main :: IO ()
 main = do
   let program = "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++."
   let state = State (map (\x -> 0) [1..100]) 0
-  let output = reverse $ snd $ interpret program (state, [])
-  let outputStr = map toEnum output :: [Char]
-  print outputStr
+  interpret program state
+  return 
+  --let output = reverse $ snd $ interpret program (state, [])
+  --let outputStr = map toEnum output :: [Char]
+  --print outputStr
